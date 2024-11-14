@@ -6,7 +6,7 @@ const app = express();
 
 app.use(express.json());
 app.use(cors());
-
+const waitTime = 0;
 // JSON dosyasını okuyan yardımcı fonksiyon
 const readUsersFromFile = () => {
   const data = fs.readFileSync("users.json");
@@ -18,13 +18,31 @@ const writeUsersToFile = (data) => {
   fs.writeFileSync("users.json", JSON.stringify(data, null, 2));
 };
 
-// Get all users
+// Get all users with pagination
 app.get("/users", (req, res) => {
   const users = readUsersFromFile();
+  const pageNumber = parseInt(req.query.pageNumber) || 1;
+  const pageSize = parseInt(req.query.pageSize) || 10;
+
+  // Calculate start and end indexes for pagination
+  const startIndex = (pageNumber - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+
+  // Slice the users array to get the paginated results
+  const paginatedUsers = users.slice(startIndex, endIndex);
+
+  // Simulate delay and respond with paginated data
   setTimeout(() => {
-    res.json(users);
-  }, 2000);
+    res.json({
+      pageNumber,
+      pageSize,
+      totalUsers: users.length,
+      totalPages: Math.ceil(users.length / pageSize),
+      users: paginatedUsers,
+    });
+  }, waitTime);
 });
+
 
 // Get a user by ID
 app.get("/users/:id", (req, res) => {
@@ -33,7 +51,7 @@ app.get("/users/:id", (req, res) => {
   setTimeout(() => {
     if (user) res.json(user);
     else res.status(404).send("User not found");
-  }, 2000);
+  }, waitTime);
 });
 
 // Create a new user
@@ -48,7 +66,7 @@ app.post("/users", (req, res) => {
   writeUsersToFile(users);
   setTimeout(() => {
     res.status(201).json(newUser);
-  }, 2000);
+  }, waitTime);
 });
 
 // Update a user
@@ -63,7 +81,7 @@ app.put("/users/:id", (req, res) => {
     } else {
       res.status(404).send("User not found");
     }
-  }, 2000);
+  }, waitTime);
 });
 
 // Delete a user
@@ -77,7 +95,30 @@ app.delete("/users/:id", (req, res) => {
     } else {
       res.status(404).send("User not found");
     }
-  }, 2000);
+  }, waitTime);
+});
+
+// Dummy data for the example
+const dummyData = Array.from({ length: 1000 }, (_, index) => ({
+  id: index + 1,
+  name: `Item ${index + 1}`,
+  description: `Description for item ${index + 1}`,
+}));
+
+// Endpoint to fetch paginated data
+app.get('/api/data', (req, res) => {
+  const page = parseInt(req.query.page, 10) || 1; // Default to page 1
+  const size = parseInt(req.query.size, 10) || 20; // Default to 20 items per page
+
+  const startIndex = (page - 1) * size;
+  const endIndex = startIndex + size;
+
+  const paginatedData = dummyData.slice(startIndex, endIndex);
+
+  res.json({
+      items: paginatedData,
+      totalCount: dummyData.length,
+  });
 });
 
 // Server başlatma
